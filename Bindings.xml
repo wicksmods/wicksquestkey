@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="WICKSQUESTKEY_FIRE" header="WICKSQUESTKEY" category="Wick's Quest Key">
+        WicksQuestKeyButton:Click()
+    </Binding>
+</Bindings>
