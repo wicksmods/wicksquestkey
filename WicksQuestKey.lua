@@ -37,8 +37,12 @@ btn:SetSize(52, 52)
 btn:SetFrameStrata("MEDIUM")
 btn:SetClampedToScreen(true)
 btn:SetMovable(true)
-btn:SetAttribute("type1", "item")
-btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+-- Mirror the working TotemBar pattern: type1=macro, both macrotext attrs set,
+-- and registered for AnyUp + AnyDown. The SAB's internal macro path runs the
+-- macrotext through a secure C-level processor (NOT the global RunMacroText,
+-- which is nil in this client), so this works where type=item didn't.
+btn:SetAttribute("type1", "macro")
+btn:RegisterForClicks("AnyUp", "AnyDown")
 btn:Hide()
 
 local bg = NewTexture(btn, "BACKGROUND", C_BG); bg:SetAllPoints(btn)
@@ -75,7 +79,7 @@ btn:SetScript("OnEnter", function(self)
     if #items > 1 then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(("Quest item %d of %d"):format(nextIndex, #items), 0.31, 0.78, 0.47)
-        GameTooltip:AddLine("Right-click to cycle without using.", 0.42, 0.35, 0.54)
+        GameTooltip:AddLine("Right-click to switch to the next item.", 0.42, 0.35, 0.54)
     end
     GameTooltip:Show()
 end)
@@ -119,14 +123,20 @@ local function Arm()
     local cur = items[nextIndex]
     if cur then
         if not InCombatLockdown() then
-            btn:SetAttribute("item", "item:" .. cur.itemId)
+            local macro = "/use " .. (cur.name or tostring(cur.itemId))
+            -- Set BOTH macrotext and macrotext1 (same as the TotemBar pattern).
+            -- type1=macro reads macrotext1 first, falls back to macrotext on
+            -- some clients but not all — setting both covers every variant.
+            btn:SetAttribute("macrotext", macro)
+            btn:SetAttribute("macrotext1", macro)
         end
         btn.icon:SetTexture(cur.icon)
         btn.icon:Show()
         if not InCombatLockdown() then btn:Show() end
     else
         if not InCombatLockdown() then
-            btn:SetAttribute("item", nil)
+            btn:SetAttribute("macrotext", nil)
+            btn:SetAttribute("macrotext1", nil)
             if locked then btn:Hide() end
         end
         btn.icon:Hide()
@@ -157,8 +167,14 @@ local function ShortBind(key)
         :gsub("MOUSEWHEELDOWN", "MwD"))
 end
 
+-- Bindings.xml uses the native "CLICK WicksQuestKeyButton:LeftButton" binding
+-- name, which Blizzard interprets as a real secure click on the button. So we
+-- only need to look up the bound key for the on-button label here. No
+-- SetOverrideBindingClick needed.
+local QK_BINDING = "CLICK WicksQuestKeyButton:LeftButton"
+
 local function UpdateBindLabel()
-    local key = GetBindingKey("WICKSQUESTKEY_FIRE")
+    local key = GetBindingKey(QK_BINDING)
     btn.bindLabel:SetText(ShortBind(key))
 end
 
@@ -187,18 +203,27 @@ local function Scan()
     UpdateCount()
 end
 
-btn:SetScript("OnClick", function(self, button)
-    if button == "RightButton" and not InCombatLockdown() and #items > 1 then
+-- HookScript instead of SetScript: SecureActionButtonTemplate's built-in OnClick
+-- is the code path that resolves type1=macro / type1=item and fires the action.
+-- Replacing it with SetScript silently stopped the action from running.
+-- HookScript appends our handler so the secure click still happens.
+-- HookScript so Blizzard's secure OnClick handler still runs and fires the
+-- macrotext for left-click. Our hook only handles the right-click cycle.
+-- AnyUp+AnyDown registration makes OnClick fire twice per click (down + up),
+-- so filter to `down` only or the cycle would advance twice.
+btn:HookScript("OnClick", function(self, button, down)
+    if button == "RightButton" and down and not InCombatLockdown() and #items > 1 then
         nextIndex = (nextIndex % #items) + 1
         Arm()
         UpdateCount()
     end
 end)
 
-btn:SetScript("PostClick", function(self, button)
-    if button == "LeftButton" and not InCombatLockdown() and #items > 0 then
-        nextIndex = (nextIndex % #items) + 1
-        Arm()
+-- Left-click / keybind use the current item but DO NOT advance the cycle, so
+-- you can spam the bind on a quest that needs the item used several times.
+-- Right-click is the only way to advance to the next item.
+btn:HookScript("PostClick", function(self, button, down)
+    if button == "LeftButton" and down and not InCombatLockdown() then
         UpdateCount()
     end
 end)
@@ -217,8 +242,9 @@ f:SetScript("OnEvent", function(_, event)
     Scan()
 end)
 
-BINDING_HEADER_WICKSQUESTKEY = "Wick's Quest Key"
-BINDING_NAME_WICKSQUESTKEY_FIRE = "Use current quest item"
+BINDING_HEADER_WICKSQUESTKEY = "Wicks Quest Key"
+-- Binding name has spaces and a colon, so set the display label via bracket syntax.
+_G["BINDING_NAME_CLICK WicksQuestKeyButton:LeftButton"] = "Use current quest item"
 
 SLASH_WICKSQUESTKEY1 = "/wqk"
 SLASH_WICKSQUESTKEY2 = "/questkey"
@@ -238,15 +264,30 @@ SlashCmdList.WICKSQUESTKEY = function(msg)
         ApplyPosition()
         print("|cff8a5cf6Wick's Quest Key|r: position reset.")
         return
+    elseif msg == "debug" then
+        local k1, k2 = GetBindingKey(QK_BINDING)
+        local cur = items[nextIndex]
+        print("|cff8a5cf6Wick's Quest Key|r debug:")
+        print(("  bind keys: %s | %s"):format(k1 or "(none)", k2 or "(none)"))
+        print(("  items loaded: %d  armed index: %d"):format(#items, nextIndex))
+        if cur then
+            print(("  armed item: %s (id %d)"):format(cur.name, cur.itemId))
+            print(("  type1 attr: %s   macrotext: %s"):format(
+                tostring(btn:GetAttribute("type1")), tostring(btn:GetAttribute("macrotext"))))
+            print(("  macrotext1: %s"):format(tostring(btn:GetAttribute("macrotext1"))))
+        end
+        print(("  button visible: %s   in combat: %s"):format(
+            tostring(btn:IsShown()), tostring(InCombatLockdown())))
+        return
     end
     if #items == 0 then
         print("|cff8a5cf6Wick's Quest Key|r: no usable quest items right now.")
     else
         print(("|cff8a5cf6Wick's Quest Key|r: %d quest item(s) loaded"):format(#items))
         for i, it in ipairs(items) do
-            local marker = (i == nextIndex) and "  |cff4fc77b<-- next press|r" or ""
+            local marker = (i == nextIndex) and "  |cff4fc77b<-- armed|r" or ""
             print(("  %d. %s%s"):format(i, it.name, marker))
         end
     end
-    print("Commands: /wqk unlock | lock | reset")
+    print("Commands: /wqk unlock | lock | reset | debug | fire")
 end

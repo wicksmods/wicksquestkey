@@ -1,5 +1,3 @@
-<Bindings>
-    <Binding name="WICKSQUESTKEY_FIRE" header="WICKSQUESTKEY" category="Wick's Quest Key">
-        WicksQuestKeyButton:Click()
-    </Binding>
+<Bindings xmlns="http://www.blizzard.com/wow/ui/">
+    <Binding name="CLICK WicksQuestKeyButton:LeftButton" header="WICKSQUESTKEY" category="Wicks Quest Key"/>
 </Bindings>

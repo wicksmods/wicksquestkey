@@ -1,5 +1,22 @@
 # Wick's Quest Key — Changelog
 
+## 1.0.1 — 2026-05-06
+
+### The keybind actually fires the item now
+
+The 1.0.0 button looked right, the icon armed correctly, the keybind registered, and the click chain reached the button on press. But the secure action that turns "click" into "use this item" never fired, so pressing the bind did nothing visible.
+
+Two root causes:
+
+- **Bindings.xml was listed in the `.toc`**, which routed it through WoW's UI XML parser instead of the Bindings parser. The parser silently dropped every `<Binding>` element, so the keybinding was never registered with the engine. Removed from the `.toc`; Blizzard auto-loads `Bindings.xml` from the addon root through the correct parser.
+- **The secure click setup didn't match the working sibling pattern.** Switched the click registration to `AnyUp` + `AnyDown` and set both `macrotext` and `macrotext1` (mirroring the WicksTotemsAndThings totem buttons, which use the same Wick-style SAB pattern). This routes the press through the SAB's internal macro processor, which works on this client even though the global `RunMacroText` Lua function is missing.
+
+### Behavior changes
+
+- **Pressing the bind or left-clicking the button uses the armed item** and leaves it armed, so quests that want the item used several times in a row stay on a single key.
+- **Right-click switches to the next quest item** without firing it (single advance per click; no longer double-advances back to where it started).
+- Cleaned up the diagnostic chat output that 1.0.0-betas were printing.
+
 ## 1.0.0 — 2026-05-03
 
 ### Initial release
