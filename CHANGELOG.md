@@ -1,5 +1,17 @@
 # Wick's Quest Key — Changelog
 
+## 1.0.2 — 2026-05-07
+
+### Cooldown timer on the button
+
+The armed item's remaining cooldown now shows in warm yellow at the bottom-center of the icon. Format follows the conventional Blizzard-style action bar:
+
+- `Xm` once the cooldown is over a minute
+- whole seconds in the 10s to 60s range
+- one-decimal seconds under 10s
+
+A 1.5s floor hides the text on global-cooldown nudges so the field stays quiet between real cooldowns. Refreshes ten times a second via a throttled OnUpdate, and snaps fresh whenever you cycle items or fire the bind.
+
 ## 1.0.1 — 2026-05-06
 
 ### The keybind actually fires the item now

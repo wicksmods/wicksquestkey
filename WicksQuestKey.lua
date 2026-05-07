@@ -65,6 +65,14 @@ bindLabel:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -3, -3)
 bindLabel:SetTextColor(1, 1, 1, 1)
 btn.bindLabel = bindLabel
 
+-- Cooldown countdown shown bottom-center of the icon. Driven by a throttled
+-- OnUpdate so we don't recompute every frame.
+local cdText = btn:CreateFontString(nil, "OVERLAY")
+cdText:SetFont("Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
+cdText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 3)
+cdText:SetTextColor(1, 0.92, 0.5, 1)  -- warm yellow, like Blizzard's action bar CD
+btn.cdText = cdText
+
 local hover = NewTexture(btn, "HIGHLIGHT", C_HOVER); hover:SetAllPoints(btn)
 
 local moveTint = NewTexture(btn, "OVERLAY", C_MOVE)
@@ -153,6 +161,40 @@ local function UpdateCount()
     end
 end
 
+-- Cooldown text: "Xm" for >=60s, whole seconds for >=10s, one decimal under 10s.
+local function FormatCD(seconds)
+    if seconds <= 0 then return "" end
+    if seconds >= 60 then return ("%dm"):format(math.ceil(seconds / 60)) end
+    if seconds >= 10 then return ("%d"):format(math.ceil(seconds)) end
+    return ("%.1f"):format(seconds)
+end
+
+-- Recompute and write the CD text from GetItemCooldown for the armed item.
+-- Called from the throttled OnUpdate below and on every Arm().
+local function UpdateCD()
+    local cur = items[nextIndex]
+    if not cur then btn.cdText:SetText(""); return end
+    local start, duration = GetItemCooldown(cur.itemId)
+    if not start or start == 0 or not duration or duration <= 1.5 then
+        -- duration <= GCD: not a real cooldown, hide the text
+        btn.cdText:SetText("")
+        return
+    end
+    local remaining = (start + duration) - GetTime()
+    if remaining <= 0 then btn.cdText:SetText(""); return end
+    btn.cdText:SetText(FormatCD(remaining))
+end
+
+-- Throttle the CD recompute to ~10Hz so the text updates smoothly without
+-- burning CPU on every frame.
+local cdElapsed = 0
+btn:SetScript("OnUpdate", function(self, dt)
+    cdElapsed = cdElapsed + dt
+    if cdElapsed < 0.1 then return end
+    cdElapsed = 0
+    UpdateCD()
+end)
+
 local function ShortBind(key)
     if not key or key == "" then return "" end
     return (key:upper()
@@ -216,6 +258,7 @@ btn:HookScript("OnClick", function(self, button, down)
         nextIndex = (nextIndex % #items) + 1
         Arm()
         UpdateCount()
+        UpdateCD()
     end
 end)
 
@@ -225,6 +268,7 @@ end)
 btn:HookScript("PostClick", function(self, button, down)
     if button == "LeftButton" and down and not InCombatLockdown() then
         UpdateCount()
+        UpdateCD()
     end
 end)
 
