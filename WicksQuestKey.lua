@@ -29,6 +29,10 @@ local function AddCornerAccents(frame)
     end
 end
 
+-- TBC Anniversary 2.5.5 moved GetItemCooldown into the C_Container namespace.
+-- Resolve once at load and fall back to the legacy global so older clients still work.
+local GetItemCooldown = (C_Container and C_Container.GetItemCooldown) or GetItemCooldown
+
 local items = {}
 local nextIndex = 1
 

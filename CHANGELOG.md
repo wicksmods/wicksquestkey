@@ -1,5 +1,13 @@
 # Wick's Quest Key — Changelog
 
+## 1.0.3 — 2026-05-07
+
+### Fix: cooldown text was throwing 24,000+ silent errors per session
+
+`GetItemCooldown` was moved into the `C_Container` namespace in TBC Anniversary 2.5.5. The cooldown OnUpdate was calling the old global, which is now nil, and the resulting error fired ten times a second whenever a quest item was armed. Resolved at load time with a fallback to the legacy global so older clients still work.
+
+Symptom you may have noticed: BugSack filling up with `attempt to call global 'GetItemCooldown' (a nil value)` entries, and a small but real CPU drag from the error capture path itself.
+
 ## 1.0.2 — 2026-05-07
 
 ### Cooldown timer on the button
