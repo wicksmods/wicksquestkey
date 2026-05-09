@@ -1,6 +1,6 @@
 # Wick's Quest Key — Changelog
 
-## 1.0.3 — 2026-05-07
+## 1.0.3 - 2026-05-07
 
 ### Fix: cooldown text was throwing 24,000+ silent errors per session
 
@@ -8,7 +8,7 @@
 
 Symptom you may have noticed: BugSack filling up with `attempt to call global 'GetItemCooldown' (a nil value)` entries, and a small but real CPU drag from the error capture path itself.
 
-## 1.0.2 — 2026-05-07
+## 1.0.2 - 2026-05-07
 
 ### Cooldown timer on the button
 
@@ -20,7 +20,7 @@ The armed item's remaining cooldown now shows in warm yellow at the bottom-cente
 
 A 1.5s floor hides the text on global-cooldown nudges so the field stays quiet between real cooldowns. Refreshes ten times a second via a throttled OnUpdate, and snaps fresh whenever you cycle items or fire the bind.
 
-## 1.0.1 — 2026-05-06
+## 1.0.1 - 2026-05-06
 
 ### The keybind actually fires the item now
 
@@ -37,7 +37,7 @@ Two root causes:
 - **Right-click switches to the next quest item** without firing it (single advance per click; no longer double-advances back to where it started).
 - Cleaned up the diagnostic chat output that 1.0.0-betas were printing.
 
-## 1.0.0 — 2026-05-03
+## 1.0.0 - 2026-05-03
 
 ### Initial release
 

@@ -4,7 +4,7 @@
 
 > Retail-style ExtraActionButton for TBC Classic. One bind to use the active quest item, auto-detected from your quest log.
 
-Part of the **[Wick suite](https://github.com/Wicksmods/WickSuite)**: precision TBC Classic addons with a shared fel-green-on-deep-purple aesthetic.
+Part of the **[Wick suite](https://github.com/Wicksmods/WickSuite)**: precision addons built around a single fel-green-on-deep-purple aesthetic.
 
 <!-- wick:suite-table:start -->
 | Addon | GitHub | CurseForge |
